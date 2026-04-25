@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{% static 'my_app/css/index.css' %}">
+    {% block styles_here %}{% endblock %}
+    <title>Proj_name</title>
+</head>
+<body>
+    {% block main %}{% endblock %}
+</body>
+</html>

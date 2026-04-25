@@ -1,0 +1,42 @@
+{% extends "my_app/base.html" %}
+{% load static %}
+{% block main %}
+    <div class="wrapper">
+      <div class="header">
+          <h1>ATRIUM</h1>
+          <div class="middle-header-refs">
+              <a href="{% url 'messanger' %}">мессенджер</a>
+              <a href="{% url 'calendar' %}">календарь</a>
+              <a href="{% url 'desks' %}">доски</a>
+              <a href="{% url 'aihelper' %}">ai - помощник</a>
+          </div>
+          <div class="messanger-PC-link">
+            <a><img src="{% static 'my_app/images/pismo.jpg' %}" style="width: 40px;"></a>
+            <a href="{% url 'lc' %}"><img src="{% static 'my_app/images/PC.jpg' %}" style="width: 40px;"></a>
+          </div>
+      </div>
+      <div class="sidebar">
+          <div class="search-block">
+              <input type="text" class="search-inp" placeholder="поиск"><br>
+
+              <a><img src="{% static 'my_app/images/squaree.jpg' %}">Мои доски</a>
+              <a><img src="{% static 'my_app/images/fucking star.jpg' %}">Избранное</a>
+          </div>
+          <div class="reclam-block">Реклама</div>
+
+      </div>
+      <div class="content">
+          <div class="functions">
+              <img src="{% static 'my_app/images/journal.jpg' %}" style="margin-right: auto;">
+              <img src="{% static 'my_app/images/paint.jpg' %}" style="margin-right: auto; margin-left: auto; border: 10px solid #E8595D;">
+              <img src="{% static 'my_app/images/statistic.jpg' %}" style="margin-left: auto;">
+          </div>
+          <div class="desk">
+              <div class="files-drop">
+                  <div style="background-color: #c4c4c4;"></div>
+                  <div></div>
+              </div>
+          </div>
+      </div>
+    </div>
+{% endblock %}

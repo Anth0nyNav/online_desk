@@ -1,0 +1,11 @@
+# Byte-code
+__pycache__/
+*.pyc
+
+# Env/DB
+.venv
+db.sqlite3
+pyvenv.cfg
+
+# IDE
+.idea/
