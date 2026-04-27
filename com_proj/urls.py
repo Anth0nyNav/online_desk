@@ -29,5 +29,6 @@ urlpatterns = [
     path('desks/', desks, name='desks'),
     path('ai-helper/', aihelper, name='aihelper'),
     path('lc/', lc, name='lc'),
+    path('main_desk/', main_desk, name='main_desk'),
 
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

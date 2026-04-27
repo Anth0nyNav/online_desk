@@ -20,3 +20,6 @@ def aihelper(request):
 def lc(request):
     return render(request, 'my_app/lc.html')
 
+def main_desk(request):
+    return render(request, 'my_app/main_desk.html')
+

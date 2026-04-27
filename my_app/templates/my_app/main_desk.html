@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ru">
+{% load static %}
+<head>
+  <meta charset="UTF-8">
+    <link rel="stylesheet" href="{% static 'my_app/css/main_desk.css' %}">
+  <title>ATRIUM</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: center;
+      margin: 10px 10px;
+
+      background-color: #D3D3D3;
+      padding: 20px 20px;
+      border-radius: 15px;
+    }
+    .toolbar button,
+    .toolbar input {
+      margin-right: 10px;
+    }
+    #board {
+      border: 1px solid #ccc;
+      cursor: crosshair;
+    }
+  </style>
+</head>
+<body style="height: 95dvh;">
+    <div id="boardContainer" style="height: 80dvh;">
+      <canvas id="board" height="600" width="1500" style="image-rendering: pixelated;"></canvas>
+    </div>
+    <div class="toolbar">
+      <input type="color" id="colorPicker" value="#000000">
+      <button id="eraserBtn">Ластик</button>
+      <button id="stickerBtn">Режим стикера</button>
+      <button id="clearBtn">Очистить доску</button>
+    </div>
+
+<script>
+    const clearBtn = document.getElementById('clearBtn');
+
+    clearBtn.addEventListener('click', () => {
+      if(confirm("Вы уверены что хотите очистить доску?")){
+          // очищаем всё
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // удаляем все стикеры
+          stickers.length = 0;
+          lines.length = 0;
+
+          // убираем textarea, если редактировали
+          removeTextarea();
+      }
+    });
+</script>
+
+
+
+<script>
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const boardContainer = document.getElementById('boardContainer');
+
+    let isDrawing = false;
+    let isEraser = false;
+    let isStickerMode = false;
+    let editingSticker = null;
+    let textarea = null;
+    let draggingSticker = null;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    // МАССИВ ЛИНИЙ ДОБАВЛЕН СЮДА
+    const lines = [];        // линии от ручки/ластика
+    const stickers = [];
+
+  // размеры и стили стикера
+  function getStickerBounds(text, x, y) {
+      const padding = 8;
+      const textHeight = 20;
+      const radius = 8;
+
+      const textWidth = ctx.measureText(text || "нажми меня").width;
+      const contentWidth = textWidth;
+      const width = contentWidth + padding * 2;
+      const height = textHeight + padding;
+
+      const x0 = x - contentWidth / 2 - padding;
+      const y0 = y - height + 10;
+
+      return { x0, y0, width, height, radius, contentWidth, textHeight };
+  }
+
+  // рисуем стикер без рамки, со скруглёнными углами
+  function drawSticker(sticker) {
+      const { x, y, text, color } = sticker;
+      const { x0, y0, width, height, radius, contentWidth } = getStickerBounds(text, x, y);
+
+      ctx.beginPath();
+      ctx.moveTo(x0 + radius, y0);
+      ctx.lineTo(x0 + width - radius, y0);
+      ctx.arcTo(x0 + width, y0, x0 + width, y0 + radius, radius);
+      ctx.lineTo(x0 + width, y0 + height - radius);
+      ctx.arcTo(x0 + width, y0 + height, x0 + width - radius, y0 + height, radius);
+      ctx.lineTo(x0 + radius, y0 + height);
+      ctx.arcTo(x0, y0 + height, x0, y0 + height - radius, radius);
+      ctx.lineTo(x0, y0 + radius);
+      ctx.arcTo(x0, y0, x0 + radius, y0, radius);
+      ctx.closePath();
+
+      ctx.fillStyle = '#D2691E';
+      ctx.fill();
+
+      ctx.fillStyle = color;
+      ctx.font = '14px Arial';
+
+      // обрезаем, если текст не помещается
+      let displayText = text;  // ← просто весь текст, без обрезания
+
+      ctx.fillText(displayText, x - contentWidth / 2, y);
+  }
+
+  // пересчёт: попадает ли точка в стикер
+  function hitTestSticker(x, y, sticker) {
+    const { x0, y0, width, height } = getStickerBounds(sticker.text, sticker.x, sticker.y);
+    return x >= x0 && x <= x0 + width &&
+           y >= y0 && y <= y0 + height;
+  }
+
+  // удаляет textarea (если есть)
+  function removeTextarea() {
+    if (textarea) {
+      if (textarea.parentNode) textarea.parentNode.removeChild(textarea);
+      textarea = null;
+    }
+    editingSticker = null;
+  }
+
+  // создаёт textarea над стикером для редактирования текста
+  function setupTextarea(sticker) {
+      removeTextarea();
+
+      const { x0, y0, width, height } = getStickerBounds(sticker.text, sticker.x, sticker.y);
+
+      const field = document.createElement('textarea');
+      field.value = sticker.text || "";
+      field.style.position = 'absolute';
+      field.style.left = (canvas.offsetLeft + x0) + 'px';
+      field.style.top = (canvas.offsetTop + y0) + 'px';
+      field.style.width = (width - 4) + 'px';
+      field.style.height = (height - 4) + 'px';
+      field.style.padding = '0';
+      field.style.border = 'none';
+      field.style.borderRadius = '8px';
+      field.style.backgroundColor = '#D2691E';
+      field.style.resize = 'none';
+      field.style.font = '14px Arial';
+      field.style.zIndex = '10';
+
+      textarea = field;
+      boardContainer.appendChild(field);
+      field.focus();
+
+      // Enter — сохраняем и убираем
+      field.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          sticker.text = field.value;
+          redrawCanvas();
+          removeTextarea();
+        }
+      });
+
+      // клик вне — сохраняем
+      function closeOnOutsideClick(e) {
+        if (!field.contains(e.target) && e.target !== canvas) {
+          sticker.text = field.value;
+          redrawCanvas();
+          removeTextarea();
+          window.removeEventListener('click', closeOnOutsideClick);
+        }
+      }
+      window.addEventListener('click', closeOnOutsideClick);
+  }
+
+
+  function redrawCanvas() {
+  // СТИРАЕМ ТОЛЬКО ХОЛОСТ, НО ЛИНИИ МЫ УЖЕ ХРАНИМ В lines[]
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // РИСУЕМ ВСЕ ЛИНИИ
+      lines.forEach(line => {
+        if (line.length < 2) return;
+
+        ctx.beginPath();
+        ctx.moveTo(line[0].x, line[0].y);
+        for (let i = 1; i < line.length; i++) {
+          ctx.lineTo(line[i].x, line[i].y);
+        }
+        ctx.stroke();
+      });
+
+      // РИСУЕМ СТИКЕРЫ ПОВЕРХ ЛИНИЙ
+      stickers.forEach(drawSticker);
+  }
+
+  // стили рисования (ручка / ластик)
+  function updateStyle() {
+    if (isEraser) {
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 12;
+    } else {
+      ctx.strokeStyle = colorPicker.value;
+      ctx.lineWidth = 3;
+    }
+  }
+
+  // ===== СОБЫТИЯ MICE — МИНУС ДУБЛИРОВАНИЕ =====
+
+  canvas.addEventListener('mousedown', e => {
+      const x = e.offsetX;
+      const y = e.offsetY;
+
+      if (editingSticker) {
+        removeTextarea();
+        return;
+      }
+
+      if (!isStickerMode && !isDrawing) {
+        for (const sticker of stickers) {
+          if (hitTestSticker(x, y, sticker)) {
+            draggingSticker = sticker;
+            dragOffsetX = x - sticker.x;
+            dragOffsetY = y - sticker.y;
+            return;
+          }
+        }
+      }
+
+      if (isStickerMode) {
+        const sticker = {
+          x: x,
+          y: y,
+          text: "",
+          color: colorPicker.value
+        };
+        stickers.push(sticker);
+        redrawCanvas();
+      } else {
+        isDrawing = true;
+        ctx.globalCompositeOperation = "source-over";
+        updateStyle();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+
+        if (!isEraser) {
+          lines.push([{ x, y }]);
+        }
+      }
+  });
+
+  canvas.addEventListener('mousemove', e => {
+      const x = e.offsetX;
+      const y = e.offsetY;
+
+      if (draggingSticker) {
+        draggingSticker.x = x - dragOffsetX;
+        draggingSticker.y = y - dragOffsetY;
+        redrawCanvas();
+        return;
+      }
+
+      if (isDrawing) {
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+
+        // если НЕ ластик — добавляем точку в lines
+        if (!isEraser) {
+          const lastLine = lines[lines.length - 1];
+          lastLine.push({ x, y });
+        }
+      }
+  });
+
+  canvas.addEventListener('mouseup', () => {
+      draggingSticker = null;
+      isDrawing = false;
+      // если последняя линия слишком короткая, можно вычистить её, если хочешь
+  });
+
+  canvas.addEventListener('mouseout', () => {
+      draggingSticker = null;
+      isDrawing = false;
+  });
+
+
+  // клик по стикеру → textarea для редактирования
+  canvas.addEventListener('click', e => {
+    if (isStickerMode || editingSticker || draggingSticker) return;
+
+    const x = e.offsetX;
+    const y = e.offsetY;
+
+    for (const sticker of stickers) {
+      if (hitTestSticker(x, y, sticker)) {
+        editingSticker = sticker;
+        setupTextarea(sticker);
+        break;
+      }
+    }
+  });
+
+  // Переключение режимов
+  eraserBtn.addEventListener('click', () => {
+    isEraser = !isEraser;
+    isStickerMode = false;
+    eraserBtn.textContent = isEraser ? 'Ручка' : 'Ластик';
+    stickerBtn.textContent = 'Режим стикера';
+    updateStyle();
+  });
+
+  stickerBtn.addEventListener('click', () => {
+    isStickerMode = !isStickerMode;
+    isEraser = false;
+    eraserBtn.textContent = 'Ручка';
+    stickerBtn.textContent = isStickerMode ? 'Отмена стикера' : 'Режим стикера';
+    updateStyle();
+  });
+
+  colorPicker.addEventListener('input', () => {
+    if (!isEraser) updateStyle();
+  });
+
+  // начальный фон
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+</script>
+
+</body>
+</html>
