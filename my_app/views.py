@@ -20,3 +20,6 @@ def aihelper(request):
 def lc(request):
     return HttpResponse('<h1>А это личный кабинет</h1>')
 
+def main_desk(request):
+    return render(request, 'my_app/main_desk.html')
+
