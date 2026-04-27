@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{% static 'my_app/css/lc.css' %}">
+    <title>Title</title>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="header">
+          <h1>ATRIUM</h1>
+          <div class="middle-header-refs">
+              <a href="{% url 'messanger' %}">мессенджер</a>
+              <a href="{% url 'calendar' %}">календарь</a>
+              <a href="{% url 'desks' %}">доски</a>
+              <a href="{% url 'aihelper' %}">ai - помощник</a>
+          </div>
+          <div class="messanger-PC-link">
+            <a><img src="{% static 'my_app/images/pismo.jpg' %}" style="width: 40px;"></a>
+            <a href="{% url 'lc' %}"><img src="{% static 'my_app/images/PC.jpg' %}" style="width: 40px;"></a>
+          </div>
+      </div>
+       <div class="sidebar-account">
+           <img src="{% static 'my_app/images/account-photo.png' %}" class="photo-user">
+           <div class="reclam-block-account">Реклама</div>
+       </div>
+        <div class="info">
+            <div class="info-account">
+                <a class="text-line">Имя: Иванов Иван Иванович </a><br>
+                <a class="text-line">Почта: ivan@gaga.ru </a><br>
+                <a class="text-line">Телефон: +76666666666 </a><br>
+            </div>
+            <div class="social-network">
+                <a>соцсети</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

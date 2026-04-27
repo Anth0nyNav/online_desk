@@ -18,5 +18,5 @@ def aihelper(request):
     return HttpResponse('<h1>Здесь скоро будет AI помощник</h1>')
 
 def lc(request):
-    return HttpResponse('<h1>А это личный кабинет</h1>')
+    return render(request, 'my_app/lc.html')
 
